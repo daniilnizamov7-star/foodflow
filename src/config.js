@@ -1,7 +1,7 @@
 export const RESTAURANT_CONFIG = {
   name: 'FoodFlow',
-  openTime: '11:30',
-  closeTime: '21:00',
+  openTime: '10:00',
+  closeTime: '22:00',
   minPreorderMinutes: 30,
   tables: [
     { id: 1, name: 'Стол 1', seats: 2 },

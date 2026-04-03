@@ -3,21 +3,27 @@ import { supabase } from './supabase'
 import { RESTAURANT_CONFIG, isOpen, getEarliestPreorder, getTimeSlots } from './config'
 
 const MENU = [
-  { id: 1, name: 'Бешбармак на одного', price: 450, emoji: '🍖', category: 'Основное' },
-  { id: 2, name: 'Шашлык из баранины', price: 800, emoji: '🍢', category: 'Основное' },
-  { id: 3, name: 'Рёбрышки из баранины', price: 800, emoji: '🦴', category: 'Основное' },
-  { id: 4, name: 'Шурпа', price: 350, emoji: '🍲', category: 'Супы' },
-  { id: 5, name: 'Лагман', price: 350, emoji: '🍜', category: 'Супы' },
-  { id: 6, name: 'Плов', price: 350, emoji: '🍚', category: 'Основное' },
-  { id: 7, name: 'Жареные манты', price: 450, emoji: '🥟', category: 'Основное' },
-  { id: 8, name: 'Казан-кебаб', price: 450, emoji: '🫕', category: 'Основное' },
-  { id: 9, name: 'Греческий салат', price: 450, emoji: '🥗', category: 'Салаты' },
-  { id: 10, name: 'Лепёшка', price: 50, emoji: '🫓', category: 'Прочее' },
-  { id: 11, name: 'Боорсок', price: 200, emoji: '🍩', category: 'Прочее' },
-  { id: 12, name: 'Тай-чай', price: 200, emoji: '☕', category: 'Напитки' },
+  { id: 1,  name: 'Фирменное блюдо',     price: 450, emoji: '🍖', category: 'Основное' },
+  { id: 2,  name: 'Шашлык из баранины',  price: 800, emoji: '🍢', category: 'Основное' },
+  { id: 3,  name: 'Рёбрышки на углях',   price: 800, emoji: '🦴', category: 'Основное' },
+  { id: 4,  name: 'Суп дня',             price: 350, emoji: '🍲', category: 'Супы' },
+  { id: 5,  name: 'Лагман',              price: 350, emoji: '🍜', category: 'Супы' },
+  { id: 6,  name: 'Плов',               price: 350, emoji: '🍚', category: 'Основное' },
+  { id: 7,  name: 'Манты',              price: 450, emoji: '🥟', category: 'Основное' },
+  { id: 8,  name: 'Казан-кебаб',        price: 450, emoji: '🫕', category: 'Основное' },
+  { id: 9,  name: 'Свежий салат',       price: 350, emoji: '🥗', category: 'Салаты' },
+  { id: 10, name: 'Хлеб',              price: 50,  emoji: '🍞', category: 'Прочее' },
+  { id: 11, name: 'Выпечка дня',       price: 200, emoji: '🥐', category: 'Прочее' },
+  { id: 12, name: 'Чай / Кофе',        price: 150, emoji: '☕', category: 'Напитки' },
+  { id: 13, name: 'Холодный напиток',  price: 100, emoji: '🧃', category: 'Напитки' },
 ]
 
 const CATEGORIES = ['Все', 'Основное', 'Супы', 'Салаты', 'Напитки', 'Прочее']
+
+// Текущее время
+function getCurrentTime() {
+  return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+}
 
 export default function Client() {
   const [cart, setCart] = useState({})
@@ -37,8 +43,15 @@ export default function Client() {
   const [orderId, setOrderId] = useState(null)
   const [orderStatus, setOrderStatus] = useState('new')
   const [statusNotify, setStatusNotify] = useState(null)
+  const [currentTime, setCurrentTime] = useState(getCurrentTime())
   const open = isOpen()
   const slots = getTimeSlots()
+
+  // Обновляем время каждую минуту
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(getCurrentTime()), 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   const total = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0)
   const count = Object.values(cart).reduce((s, i) => s + i.qty, 0)
@@ -81,9 +94,10 @@ export default function Client() {
   }
 
   async function placeOrder() {
-    if (!name || !phone) return alert('Введите имя и телефон')
+    if (!name.trim()) return alert('Введите ваше имя')
+    if (!phone.trim()) return alert('Введите номер телефона')
     if (orderType === 'here' && !tableId) return alert('Выберите столик')
-    if (orderType === 'delivery' && !address) return alert('Введите адрес доставки')
+    if (orderType === 'delivery' && !address.trim()) return alert('Введите адрес доставки')
     const items = Object.values(cart).map(i => ({ name: i.name, price: i.price, qty: i.qty }))
     const { data, error } = await supabase.from('orders').insert({
       customer_name: name,
@@ -129,52 +143,66 @@ export default function Client() {
   }, [orderId])
 
   const statusLabels = {
-    new: { text: '⏳ Ожидает подтверждения', color: '#f59e0b' },
-    confirmed: { text: '✅ Заказ подтверждён!', color: '#22c55e' },
-    cooking: { text: '👨‍🍳 Готовится...', color: '#3b82f6' },
-    ready: { text: '🎉 Готово! Можно забирать', color: '#22c55e' },
-    cancelled: { text: '❌ Отменён', color: '#ef4444' },
+    new:       { text: '⏳ Ожидает подтверждения', color: '#f59e0b' },
+    confirmed: { text: '✅ Заказ подтверждён!',    color: '#22c55e' },
+    cooking:   { text: '👨‍🍳 Готовится...',          color: '#3b82f6' },
+    ready:     { text: '🎉 Готово! Можно забирать', color: '#22c55e' },
+    cancelled: { text: '❌ Отменён',               color: '#ef4444' },
   }
 
+  // ЭКРАН — ЗАКАЗ ОФОРМЛЕН
   if (sent) return (
     <div style={s.page}>
       {statusNotify && <div style={s.notifyBanner}>{statusNotify}</div>}
       <div style={s.header}>
         <div style={s.logo}>{RESTAURANT_CONFIG.name}</div>
+        <div style={{ fontSize: 11, color: '#a8906e' }}>{currentTime}</div>
       </div>
       <div style={{ padding: 24, textAlign: 'center' }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🤲</div>
-        <div style={{ fontFamily: 'Georgia,serif', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Заказ принят!</div>
-        <div style={{ fontSize: 13, color: '#6b5740', marginBottom: 24 }}>Мы свяжемся с вами для подтверждения</div>
+        <div style={{ fontFamily: 'Georgia,serif', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+          Заказ принят!
+        </div>
+        <div style={{ fontSize: 13, color: '#6b5740', marginBottom: 24 }}>
+          Администратор свяжется с вами для подтверждения
+        </div>
         {isPreorder && (
           <div style={{ background: '#fef3c7', border: '1px solid rgba(217,119,6,.2)', borderRadius: 12, padding: 12, marginBottom: 16, fontSize: 13, color: '#d97706', fontWeight: 700 }}>
             ⏰ Предзаказ на {preorderTime}
           </div>
         )}
         <div style={{ background: '#fdf0e8', border: '1.5px solid rgba(139,69,19,.2)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 11, color: '#a8906e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Статус заказа</div>
+          <div style={{ fontSize: 11, color: '#a8906e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Статус заказа
+          </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: statusLabels[orderStatus]?.color || '#6b5740' }}>
             {statusLabels[orderStatus]?.text || orderStatus}
           </div>
         </div>
-        <button style={s.btnPrimary} onClick={() => { setSent(false); setOrderId(null); setOrderStatus('new'); setScreen('menu') }}>
+        <button style={s.btnPrimary} onClick={() => {
+          setSent(false); setOrderId(null); setOrderStatus('new'); setScreen('menu')
+        }}>
           Новый заказ
         </button>
       </div>
     </div>
   )
 
+  // ОСНОВНОЙ ЭКРАН
   return (
     <div style={s.page}>
       {statusNotify && <div style={s.notifyBanner}>{statusNotify}</div>}
+
       <div style={s.header}>
         <div>
           <div style={s.logo}>{RESTAURANT_CONFIG.name}</div>
           <div style={{ fontSize: 10, color: open ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
-            {open ? `● Открыто · ${RESTAURANT_CONFIG.openTime}–${RESTAURANT_CONFIG.closeTime}` : `● Закрыто · Открытие в ${RESTAURANT_CONFIG.openTime}`}
+            {open
+              ? `● Открыто · ${RESTAURANT_CONFIG.openTime}–${RESTAURANT_CONFIG.closeTime}`
+              : `● Закрыто · Открытие в ${RESTAURANT_CONFIG.openTime}`}
           </div>
         </div>
-        <div style={{ fontSize: 11, color: '#a8906e' }}>⭐ 4.7</div>
+        <div style={{ fontSize: 12, color: '#a8906e', fontWeight: 700 }}>{currentTime}</div>
       </div>
 
       {/* МЕНЮ */}
@@ -182,7 +210,7 @@ export default function Client() {
         <>
           {!open && (
             <div style={{ margin: '10px 18px', background: '#fef3c7', border: '1px solid rgba(217,119,6,.2)', borderRadius: 12, padding: 12, fontSize: 12, color: '#d97706', fontWeight: 600 }}>
-              ⏰ Заведение закрыто. Вы можете оформить предзаказ на завтра.
+              ⏰ Заведение закрыто. Вы можете оформить предзаказ.
             </div>
           )}
           <div style={{ padding: '10px 18px 0', display: 'flex', gap: 8, overflowX: 'auto', flexShrink: 0 }}>
@@ -229,16 +257,16 @@ export default function Client() {
         <>
           <div style={s.backRow}>
             <button style={s.backBtn} onClick={() => setScreen('menu')}>← Меню</button>
-            <div style={s.sectionTitle}>Корзина</div>
+            <div style={s.sectionTitle}>Оформление заказа</div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px' }}>
 
             {/* ТИП ЗАКАЗА */}
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 12, marginTop: 12 }}>
               <div style={s.label}>Тип заказа</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[
-                  { id: 'here', label: '🍽️ В зале' },
+                  { id: 'here',     label: '🍽️ В зале' },
                   { id: 'takeaway', label: '🥡 Самовывоз' },
                   { id: 'delivery', label: '🚗 Доставка' },
                 ].map(t => (
@@ -284,9 +312,6 @@ export default function Client() {
               <div style={{ marginBottom: 12 }}>
                 <div style={s.label}>Адрес доставки</div>
                 <input style={s.input} placeholder="Улица, дом, квартира" value={address} onChange={e => setAddress(e.target.value)} />
-                <div style={{ fontSize: 11, color: '#a8906e', marginTop: -6, marginBottom: 8 }}>
-                  Бесплатно от 4 000 ₽ · От 2 500 ₽ по тарифу
-                </div>
               </div>
             )}
 
@@ -320,8 +345,7 @@ export default function Client() {
                         flexShrink: 0, padding: '7px 14px', borderRadius: 20, cursor: 'pointer',
                         background: preorderTime === slot ? '#8b4513' : '#f7f0e4',
                         color: preorderTime === slot ? '#fff' : '#6b5740',
-                        fontSize: 12, fontWeight: 700,
-                        border: '1px solid rgba(0,0,0,.1)',
+                        fontSize: 12, fontWeight: 700, border: '1px solid rgba(0,0,0,.1)',
                       }}>{slot}</div>
                     ))}
                   </div>
@@ -370,7 +394,7 @@ export default function Client() {
               </div>
               {isPreorder && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: '#6b5740' }}>Время</span>
+                  <span style={{ fontSize: 12, color: '#6b5740' }}>Предзаказ</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#8b4513' }}>⏰ {preorderTime}</span>
                 </div>
               )}
@@ -390,7 +414,9 @@ export default function Client() {
             <div style={s.label}>Контактные данные</div>
             <input style={s.input} placeholder="Ваше имя" value={name} onChange={e => setName(e.target.value)} />
             <input style={s.input} placeholder="Телефон" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
-            <textarea style={{ ...s.input, resize: 'none', lineHeight: 1.5 }} rows={2} placeholder="Комментарий к заказу (необязательно)" value={comment} onChange={e => setComment(e.target.value)} />
+            <textarea style={{ ...s.input, resize: 'none', lineHeight: 1.5 }} rows={2}
+              placeholder="Комментарий к заказу (необязательно)"
+              value={comment} onChange={e => setComment(e.target.value)} />
 
             {!open && !isPreorder && (
               <div style={{ background: '#fef2f2', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
@@ -398,7 +424,8 @@ export default function Client() {
               </div>
             )}
 
-            <button style={{ ...s.btnPrimary, opacity: (!open && !isPreorder) ? 0.5 : 1 }}
+            <button
+              style={{ ...s.btnPrimary, opacity: (!open && !isPreorder) ? 0.5 : 1 }}
               onClick={() => { if (!open && !isPreorder) return; placeOrder() }}>
               {isPreorder ? `Оформить предзаказ на ${preorderTime} 🤲` : 'Оформить заказ 🤲'}
             </button>
