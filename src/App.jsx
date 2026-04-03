@@ -3,7 +3,7 @@ import Client from './client'
 import Admin from './admin'
 import './index.css'
 
-const ADMIN_PASSWORD = 'foodflow2026'
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'foodflow2026'
 
 function AdminGate() {
   const [pwd, setPwd] = useState('')
