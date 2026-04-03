@@ -7,6 +7,7 @@ const STATUS_LABELS = {
   confirmed: { text: '✅ Подтверждён', color: '#22c55e', bg: '#f0fdf4' },
   cooking: { text: '👨‍🍳 Готовится', color: '#3b82f6', bg: '#eff6ff' },
   ready: { text: '🎉 Готово', color: '#22c55e', bg: '#f0fdf4' },
+  delivered: { text: '🤲 Выдан', color: '#8b5cf6', bg: '#f5f3ff' },
   cancelled: { text: '❌ Отменён', color: '#ef4444', bg: '#fef2f2' },
 }
 
@@ -14,6 +15,7 @@ const NEXT_STATUS = {
   new: 'confirmed',
   confirmed: 'cooking',
   cooking: 'ready',
+  ready: 'delivered',
 }
 
 const DEMO_NAMES = ['Амир К.', 'Зара И.', 'Рустам А.', 'Малика Т.', 'Ибрагим С.', 'Нилуфар Р.']
@@ -115,8 +117,9 @@ export default function Admin() {
   }
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
-  const todayRevenue = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.total || 0), 0)
-  const avgCheck = orders.length ? Math.round(todayRevenue / orders.length) : 0
+  const todayRevenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.total || 0), 0)
+  const deliveredCount = orders.filter(o => o.status === 'delivered').length
+  const avgCheck = deliveredCount ? Math.round(todayRevenue / deliveredCount) : 0
   const newCount = orders.filter(o => o.status === 'new').length
 
   return (
@@ -141,7 +144,8 @@ export default function Admin() {
 
       <div style={s.stats}>
         {[
-          { label: 'Заказов', val: orders.length, color: '#1a1208' },
+          { label: 'Всего', val: orders.length, color: '#1a1208' },
+          { label: 'Выдано', val: orders.filter(o => o.status === 'delivered').length, color: '#8b5cf6' },
           { label: 'Новых', val: newCount, color: '#f59e0b' },
           { label: 'Выручка', val: todayRevenue.toLocaleString('ru') + ' ₽', color: '#8b4513' },
           { label: 'Ср. чек', val: avgCheck.toLocaleString('ru') + ' ₽', color: '#2d6a4f' },
@@ -160,6 +164,7 @@ export default function Admin() {
           { key: 'confirmed', label: '✅ Подтверждённые' },
           { key: 'cooking', label: '👨‍🍳 Готовятся' },
           { key: 'ready', label: '🎉 Готовы' },
+          { key: 'delivered', label: '🤲 Выданы' },
         ].map(f => (
           <div key={f.key} onClick={() => setFilter(f.key)} style={{
             flexShrink: 0, fontSize: 11, fontWeight: 700,
@@ -264,10 +269,10 @@ export default function Admin() {
               <div style={{ display: 'flex', gap: 6 }}>
                 {next && (
                   <button style={s.btnConfirm} onClick={() => updateStatus(order.id, next)}>
-                    {next === 'confirmed' ? '✅ Принять' : next === 'cooking' ? '👨‍🍳 Готовить' : '🎉 Готово'}
+                    {next === 'confirmed' ? '✅ Принять' : next === 'cooking' ? '👨‍🍳 Готовить' : next === 'ready' ? '🎉 Готово' : '🤲 Выдать'}
                   </button>
                 )}
-                {order.status !== 'cancelled' && order.status !== 'ready' && (
+                {order.status !== 'cancelled' && order.status !== 'ready' && order.status !== 'delivered' && (
                   <button style={s.btnCancel} onClick={() => updateStatus(order.id, 'cancelled')}>Отменить</button>
                 )}
               </div>
