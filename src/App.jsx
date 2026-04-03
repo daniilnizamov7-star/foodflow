@@ -5,7 +5,7 @@ import './index.css'
 
 function App() {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768)
-  const isAdmin = window.location.pathname === '/admin'
+  const isAdmin = window.location.pathname.startsWith('/admin')
 
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768)
@@ -13,12 +13,10 @@ function App() {
     return () => window.removeEventListener('resize', handler)
   }, [])
 
-  // На телефоне — только одна страница
   if (!isDesktop) {
     return isAdmin ? <Admin /> : <Client />
   }
 
-  // На десктопе — обе панели рядом
   return (
     <div style={{
       display: 'grid',
