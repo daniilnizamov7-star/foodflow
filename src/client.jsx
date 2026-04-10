@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { RESTAURANT_CONFIG, isOpen, getEarliestPreorder, getTimeSlots, calcDishPrice, getDeliveryZone, getTakeawayDiscount, getUpsellSuggestions } from './config'
 
@@ -67,6 +67,29 @@ export default function Client() {
   const [statusNotify, setStatusNotify] = useState(null)
   const [currentTime, setCurrentTime] = useState(getCurrentTime())
   const [modifierModal, setModifierModal] = useState(null)
+
+  // PWA установка
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [showInstall, setShowInstall] = useState(false)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+      setShowInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    window.addEventListener('appinstalled', () => setShowInstall(false))
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function handleInstall() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') setShowInstall(false)
+    setInstallPrompt(null)
+  }
 
   const open = isOpen()
   const slots = getTimeSlots()
@@ -239,6 +262,45 @@ export default function Client() {
   return (
     <div style={s.page}>
       {statusNotify && <div style={s.notifyBanner}>{statusNotify}</div>}
+
+      {/* PWA БАННЕР УСТАНОВКИ */}
+      {showInstall && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: 16, right: 16, zIndex: 999,
+          background: '#1a0d00',
+          border: '1.5px solid rgba(201,168,76,0.4)',
+          borderRadius: 16, padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          maxWidth: 388, margin: '0 auto',
+        }}>
+          <div style={{ fontSize: 36 }}>📲</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#fdf8f0', marginBottom: 2 }}>
+              Установить FoodFlow
+            </div>
+            <div style={{ fontSize: 11, color: '#a8906e' }}>
+              Добавить на экран — работает без браузера
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button onClick={handleInstall} style={{
+              background: '#c9a84c', color: '#1a0d00',
+              border: 'none', borderRadius: 8, padding: '6px 14px',
+              fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              Установить
+            </button>
+            <button onClick={() => setShowInstall(false)} style={{
+              background: 'transparent', color: '#a8906e',
+              border: 'none', padding: '4px 0',
+              fontSize: 11, cursor: 'pointer', textAlign: 'center',
+            }}>
+              Не сейчас
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ШАПКА */}
       <div style={s.header}>
