@@ -179,7 +179,7 @@ export default function Client() {
     const { data, error } = await supabase.from('orders').insert({
       customer_name: name, customer_phone: phone, order_type: orderType, items, total,
       address: orderType === 'delivery' ? address : null,
-      delivery_zone: orderType === 'delivery' ? deliveryZoneId : null,
+      // delivery_zone: orderType === 'delivery' ? deliveryZoneId : null, // добавить колонку: ALTER TABLE orders ADD COLUMN delivery_zone text;
       table_number: tableId ? String(tableId) : null,
       booking_time: isPreorder ? preorderTime : null, status: 'new', comment,
       payment_method: payment, guests: orderType === 'here' ? guests : null,
